@@ -1,0 +1,48 @@
+
+Situação: Cliente solicitou que quando status do objeto Leda for alterado de 'Open - Not Contacted' para 'Working - Contacted' automaticamente deve ser alterado a classificação  (rating) para Warm.
+
+_________________________________
+
+Trigger:
+
+trigger LeadTrigger on Lead (before update) {
+    
+    String evento = String.valueOf(trigger.OperationType);
+    
+    for (lead ldd : trigger.new) {
+        
+        if (ldd.status == 'Open - Not Contacted' || ldd.status == 'Working - Contacted') {
+            
+            ldd.rating = 'Warm';
+            
+        }
+        
+        
+    }
+    
+}
+
+________________________________________________________________________________________________
+
+Classe de teste:
+
+@istest
+public class LeadTriggertest {
+    @istest
+    static void leadtestvalidacaotrigger() {
+                
+        Lead ldd = new Lead (
+        id = '00Q8c000011SKJZEA4',
+        status = 'Working - Contacted'
+        );
+        
+        update ldd;      
+        
+        List <lead> lista = [SELECT STATUS, RATING FROM LEAD WHERE ID = '00Q8c000011SKJZEA4'];
+        for (lead lddtest : lista){
+        system.assertEquals('Working - Contacted', lddtest.status, 'Deu certo');    
+        }
+                    
+    }
+        
+}
