@@ -1,0 +1,139 @@
+
+/*
+*********************************************************
+Solicitação: Cliente solicitou após a conversão de um lead um e-mail deve ser enviado para administrador da empresa. Ou seja, quando lead constar no status 'Closed - Converted' o e-mail deve ser disparado.
+*********************************************************
+*/
+
+___________________________________________________________________________________________________________________________
+
+/* 
+*********************************************************
+Trigger: After Update
+Data de criação: 20/05/22
+@descrição: Criação de trigger para alterar status e disparar e-mail
+@autor: Edvaldo dos Santos
+
+*********************************************************
+*/
+
+//Criação de trigger após alteração
+trigger leads on Lead (After Update){    
+
+	//Criação de variável evento para definir evento   
+	String evento = String.valueOf(trigger.operationType);
+         	
+	//Criação if para definir quando evento ocorre   /   Criação do for para gerar if    /    criação do if com condição e gerar e-mail
+	if(evento == 'AFTER_UPDATE'){ 
+		for(lead leadis: Trigger.new){
+       	 		if(leadis.status == 'Closed - Converted'){
+                			Integer recordCount = Trigger.New.size();
+                			
+				// chamar a classe de enviar email passando os dados solicitados
+                			EmailManager.sendMail('faradayenergia1@gmail.com', 'Um novo lead foi convertido', 
+                                     		 recordCount + '\n Id: '+leadis.Id +'\n Nome da empresa: '+ leadis.Company 
+                                      		+'\n Tipo de energia solicitada:' + leadis.tipoDeEnergia__c);
+            			}
+        		}
+	}
+}
+
+________________________________________________________________________________________________________________
+
+/* 
+*********************************************************
+Classe: Email
+Data de criação: 20/05/22
+@descrição: Criação de classe com metodo oara gerar email
+@autor: Edvaldo dos Santos
+
+*********************************************************
+*/
+
+//Criação de classe para gerar email
+public class EmailManager {
+
+	//Método Público
+	public static void sendMail(String address, String subject, String body) {
+        
+		//Criar um objeto Mensagem de Email
+		Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+		String[] toAddresses = new String[] {address};
+		mail.setToAddresses(toAddresses);
+		mail.setSubject(subject);
+		mail.setPlainTextBody(body);
+		
+		//Passe esta mensagem de email para o Método sendEmail integrado da Classe Envio de Mensagens
+		Messaging.SendEmailResult[] results = Messaging.sendEmail(
+			new Messaging.SingleEmailMessage[] { mail });
+
+		// Convoque um metodo auxiliar para inspecionar os resultados retornados
+		inspectResults(results);
+	}
+
+	// Método auxiliar
+	private static Boolean inspectResults(Messaging.SendEmailResult[] results) {
+		Boolean sendResult = false;
+
+		//SendEmail retorna um conjunto de objetos resultantes.
+		//Iterar através da lista para inspecionar resultados.
+		//Nesta classe, os métodos enviam somente um email, de modo que recebemos somente um resultado.
+		for (Messaging.SendEmailResult res : results) {
+			if (res.isSuccess()) {
+				sendResult = true;
+				System.debug('Email enviado com sucesso');
+		}
+		else{
+			System.debug('Ocorreram os seguintes erros: ' + res.getErrors());                 
+            		}
+	}
+        	return sendResult;
+}
+
+___________________________________________________________________________________________________________________
+
+/*
+*********************************************************
+Classe de teste - Nome : updateLead
+Data de criação: 04/05/22
+@descrição: Classe usada para testar alteração em Trigger - Objeto Lead
+@autor: Edvaldo dos Santos
+
+*********************************************************
+*/
+
+//Criação de classe para teste da trigger 
+@isTest
+public class leadsTriggerTeste {
+
+	@isTest 
+	static void testeValidacaoLeadsTrigger() {
+		
+		//Habilita todas as entidades do Change Data Capture para notificações.
+		Test.enableChangeDataCapture();
+
+		//Atualização de um lead especifico para o status 'Closed - Converted' para entrar na disparada de email
+		Lead converterLeadparaclosed = new Lead(
+		Status = 'Closed - Converted',      
+		Id = '00Q8a00001pyOPREA2'
+		);
+		update converterLeadparaclosed;
+
+		//Linha necessária para envio do e-mail. (Trailhead)
+		Test.getEventBus().deliver();
+
+		//Criação de lista para fazer uma busca e verificar se o lead foi convertido 
+		List <lead> ListaClosed = [SELECT Status FROM lead where Id = '00Q8a00001pyOPREA2'];
+
+		//Criação do for para confirmar lead da lista e teste para validar informação inserida
+		for(lead leadteste : ListaClosed){
+			System.assertEquals('Closed - Converted', leadteste.Status, 'Funcionou');
+		} 
+	}
+}
+
+
+
+
+
+

@@ -1,0 +1,95 @@
+
+/*
+*********************************************************
+Solicitação: Cliente solicitou que quando status do objeto Lead for alterado de 'Open - Not Contacted' para 'Working - Contacted' automaticamente deve ser alterado a classificação  (rating) para Warm.
+*********************************************************
+*/
+
+
+__________________________________________________________________________________________________
+
+/* 
+*********************************************************
+Trigger: Lead - Before Update
+Data de criação: 19/05/22
+@descrição: Se status alterar para 'Working - Contacted' criar conta
+@autor: Edvaldo dos Santos
+
+*********************************************************
+*/
+
+//Criação de trigger antes da alteração
+trigger leads on Lead (Before Update){    
+
+	//Criação de variável evento para definir evento
+	String evento = String.valueOf(trigger.operationType);
+
+	//Criação de if para informar evento
+	if(evento == 'Before Update'){
+
+		//Criação de for e if com condição para gerar gatilho        
+		for(lead leadis: Trigger.new){     
+		if(trigger.old[0].status == 'Open - Not Contacted' && leadis.status == 'Working - Contacted'){   
+                   	
+			//Criação de lista para receber nova conta
+			List<Account> lstAcc = new List<Account>();
+			
+			//Criação de for para inserção de conta
+			for(lead leadss: Trigger.new){
+				Account novaAcc = new account(
+					CNPJ__c = leadss.CNPJ__c,
+					name = leadss.company
+				);
+       
+			//Inserção da conta na lista
+			lstAcc.add(novaAcc); 
+                    		}
+		//Inserção da lista (Conta esta inserida dentro)
+		insert lstAcc;
+                	}  
+		}
+	}
+}
+
+____________________________________________
+
+
+/*
+*********************************************************
+Classe de teste - Nome : updateLead
+Data de criação: 04/05/22
+@descrição: Classe usada para testar alteração em Trigger - Objeto Lead
+@autor: Edvaldo dos Santos
+
+*********************************************************
+*/
+
+//Criação de classe para teste da trigger 
+@isTest
+public class leadsTriggerTeste {
+
+	//Criação de método para inserir lead e gerar conta     
+	@isTest 
+	static void testeValidacaoLeadsTrigger() {
+	
+	//Inserindo lead com status conforme condição na trigger
+	Lead converterLead = new Lead(
+	Status = 'Working - Contacted',      
+	Id = '00Q8a00001pyRzMEAU'
+	);
+	update converterLead; 
+        
+	//Inserindo lista para buscar lead criado     
+	List <lead> Lista = [SELECT Status FROM lead where Id = '00Q8a00001pyRzMEAU'];
+	
+	
+	for(lead leadteste : Lista){
+	System.assertEquals('Working - Contacted', leadteste.Status, 'Funcionou');
+	}
+         
+	List <Account> Listateste = [SELECT name FROM Account where name = 'Logos Ltda'];
+	for(Account accTeste : Listateste){
+	System.assertEquals('Logos Ltda', accTeste.name, 'Funcionou');
+	}
+}
+}
