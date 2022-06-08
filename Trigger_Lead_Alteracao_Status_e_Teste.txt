@@ -1,6 +1,70 @@
+/*
+*********************************************************
+Solicitação: Cliente solicitou que quando status do objeto Lead for alterado de 'Open - Not Contacted' para 'Working - Contacted' automaticamente deve ser alterado a classificação  (rating) para Warm.
+*********************************************************
+*/
 
-Situação: Cliente solicitou que quando status do objeto Leda for alterado de 'Open - Not Contacted' para 'Working - Contacted' automaticamente deve ser alterado a classificação  (rating) para Warm.
+__________________________________________________________________________________________
 
-_________________________________
+/* 
+*********************************************************
+Trigger: UpdateLead
+Data de criação: 04/05/22
+@descrição: Criação de trigger para alterar status
+@autor: Edvaldo dos Santos
 
-Atualizando [...]
+*********************************************************
+*/
+
+//Criação de trigger antes da alteração
+trigger LeadTrigger on Lead (before update) {
+
+	//Criação de variável evento para definir evento
+	String evento = String.valueOf(trigger.OperationType);
+
+	//Criação de for e if para defnir condição
+	for (lead ldd : trigger.new) {
+   		if (ldd.status == 'Open - Not Contacted' || ldd.status == 'Working - Contacted') {
+           			ldd.rating = 'Warm';
+        		}
+    	}
+}
+
+________________________________________________________________________________________________
+
+/*
+*********************************************************
+Classe de teste - Nome : updateLead
+Data de criação: 04/05/22
+@descrição: Classe usada para testar alteração em Trigger - Objeto Lead
+@autor: Edvaldo dos Santos
+
+*********************************************************
+*/
+
+//Criação de classe para teste da trigger 
+@istest
+public class LeadTriggertest {
+       
+       //Criação de método para inserir lead e confirmar alteração
+       @istest
+       static void leadtestvalidacaotrigger() {
+        
+        //Inserção de registro de lead com status conforme condição do if        
+        Lead ldd = new Lead (
+        	id = '00Q8c000011SKJZEA4',
+        	status = 'Working - Contacted'
+        );
+        update ldd;      
+        
+        //Criação de lista para buscar lead criado
+        List <lead> lista = [SELECT STATUS, RATING FROM LEAD WHERE ID = '00Q8c000011SKJZEA4'];
+        
+        //Criação de for puxando a lista para fazer teste conforme inserção do lead
+        for (lead lddtest : lista){
+        	system.assertEquals('Working - Contacted', lddtest.status, 'Deu certo');    
+        }
+                    
+    }
+        
+}
